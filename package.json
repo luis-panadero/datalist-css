@@ -8,7 +8,8 @@
     "dist/**/*"
   ],
   "scripts": {
-    "build": "rollup --config --environment NODE_ENV:production"
+    "build": "rollup --config --environment NODE_ENV:production",
+    "start": "web-dev-server --node-resolve --open --watch"
   },
   "repository": {
     "type": "git",
@@ -29,6 +30,7 @@
   "license": "MIT",
   "devDependencies": {
     "@rollup/plugin-terser": "^0.4.4",
+    "@web/dev-server": "^0.4.6",
     "rollup": "^4.52.5"
   }
 }
