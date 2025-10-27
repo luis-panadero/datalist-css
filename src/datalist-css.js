@@ -121,10 +121,10 @@ Note the <datalist> should be placed immediately after its <input>.
 
   // key event on datalist
   const keymap = {
-    33: -12,
-    34: 12,
-    38: -1,
-    40: 1
+    33: -12, // Page Up
+    34: 12, // Page Down
+    38: -1, // Arrow Up
+    40: 1 // Arrow Down
   };
 
   function listKey(e) {
