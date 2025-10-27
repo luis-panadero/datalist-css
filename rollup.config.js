@@ -10,7 +10,8 @@ export default [
 
     output: {
       file: './dist/datalist-css.js',
-      format: 'es'
+      format: 'es',
+      sourcemap: true,
     }
 
   },
@@ -23,6 +24,7 @@ export default [
     output: {
       file: './dist/datalist-css.min.js',
       format: 'es',
+      sourcemap: true,
       plugins: [
         terser({
           ecma: 2018,

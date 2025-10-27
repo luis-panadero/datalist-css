@@ -7,221 +7,258 @@ load script:
 Then style <datalist> and <option> fields using CSS.
 Note the <datalist> should be placed immediately after its <input>.
 */
-(() => {
-  // do not run on the server
-  if (typeof document === "undefined") return;
 
-  // currently active list
-  let listActive;
+// currently active list
+let listActive;
 
+/**
+  * Inyects datalist CSS to all <input> elements that have attached an <datalist>
+  * @param {HTMLElement = document} rootElement - HTMLElement where begin to search for the input elements
+  */
+function inyectDataListCss(rootElement = document) {
   // datalist handler events
-  document.body.addEventListener('focusin', listShow);
-  document.body.addEventListener('click', closeOnClickOutside);
-  document.addEventListener('keydown', closeOnEscape);
+  const inputElements = getAllInputsWithDataLists(rootElement);
+  for (const inputElement of inputElements) {
+    inputElement.list.classList.add("datalist");
+    inputElement.addEventListener('focusin', listShowEventHandler);
+  }
+  if (inputElements.length > 0) {
+    document.body.addEventListener('click', closeOnClickOutside);
+    document.addEventListener('keydown', closeOnEscape);
+  }
+}
+export { inyectDataListCss };
 
-  // datalist control focused?
-  function listShow(e) {
+// do not run on the server
+if (typeof document !== "undefined") {
+  document.addEventListener("DOMContentLoaded", () => inyectDataListCss());
+}
 
-    const input = target(e);
-    if (!input) return;
 
-    if (input.list) {
+/**
+  * Gets all <input> elements that have attached an <datalist>
+  * @param {HTMLElement} rootElement
+  */
+function getAllInputsWithDataLists(rootElement ) {
+  return [...rootElement.querySelectorAll('input[list]:not([list=""]):not([data-datalist-native])')]
+    .filter(inputElement => inputElement.list !== null);
+}
 
-      // setup of datalist control
-      const dl = input.list;
-      input.datalist = dl;
-      input.removeAttribute('list');
+// datalist control focused?
+function listShowEventHandler(evt) {
 
-      dl.input = input;
-      dl.setAttribute('tabindex', -1);
+  const input = target(evt);
+  if (!input) {
+    return;
+  }
 
-      // event handlers
-      input.addEventListener('input', listLimit);
-      input.addEventListener('keydown', listControl);
-      dl.addEventListener('keydown', listKey);
-      dl.addEventListener('click', listSet);
+  if (input.list) {
 
-    }
+    // setup of datalist control
+    const dataListElement = input.list;
+    input.datalist = dataListElement;
+    input.removeAttribute('list');
 
-    // show datalist
-    const dl = input.datalist;
-    if (dl && !dl.shown) {
+    dataListElement.input = input;
+    dataListElement.setAttribute('tabindex', -1);
 
-      listHide(listActive);
-
-      dl.shown = true;
-      listLimit(e);
-      dl.style.width = input.offsetWidth + 'px';
-      dl.style.left = input.offsetLeft + 'px';
-      dl.style.display = 'block';
-      listActive = dl;
-
-    }
+    // event handlers
+    input.addEventListener('input', listLimit);
+    input.addEventListener('keydown', listControl);
+    dataListElement.addEventListener('keydown', listKey);
+    dataListElement.addEventListener('click', listSet);
 
   }
 
+  // show datalist
+  const dataListElement = input.datalist;
+  if (dataListElement && !dataListElement.shown) {
 
-  // hide datalist
-  function listHide(dl) {
+    listHide(listActive);
 
-    if (dl && dl.shown) {
-
-      dl.style.display = 'none';
-      dl.shown = false;
-
-    }
-
-  }
-
-
-  // enable valid and disable invalid options
-  function listLimit(e) {
-
-    const input = target(e);
-    if (!input || !input.datalist) return;
-
-    const v = input.value.trim().toLowerCase();
-    Array.from(input.datalist.getElementsByTagName('option')).forEach(opt => {
-      opt.setAttribute('tabindex', 0);
-      opt.style.display = !v || opt.value.toLowerCase().includes(v) ? 'block' : 'none';
-    });
+    dataListElement.shown = true;
+    dataListElement.classList.add("datalist--visible");
+    listLimit(evt);
+    //dataListElement.style.width = input.offsetWidth + 'px';
+    //dataListElement.style.left = input.offsetLeft + 'px';
+    listActive = dataListElement;
 
   }
 
+}
 
-  // key event on input
-  function listControl(e) {
+/**
+  * Hide the datalist
+  * @param dataListElement - DataList HTML element
+  */
+function listHide(dataListElement) {
+  if (dataListElement && dataListElement.shown) {
+    dataListElement.classList.remove("datalist--visible");
+    dataListElement.shown = false;
+  }
+}
 
-    const input = target(e);
-    if (!input || !input.datalist) return;
 
-    switch (e.keyCode) {
+// enable valid and disable invalid options
+function listLimit(evt) {
 
-      case 40: {
-        // arrow down
-        let opt = input.datalist.firstElementChild;
-        if (!opt.offsetHeight) opt = visibleSibling(opt, 1);
-        opt && opt.focus();
-        break;
-      }
-
-      case 9:   // tab
-        listHide(input.datalist);
-        break;
-
-      case 13:  // enter
-      case 32:  // space
-        listSet(e);
-        break;
-
-    }
-
+  const input = target(evt);
+  if (!input || !input.datalist) {
+    return;
   }
 
+  const value = input.value.trim().toLowerCase();
+  const optionElements = [...input.datalist.getElementsByTagName('option')];
+  for (const optionElement of optionElements) {
+    optionElement.setAttribute('tabindex', 0);
+    optionElement.style.display = (!value || optionElement.value.toLowerCase().includes(value)) ? 'block' : 'none';
+  }
+}
 
-  // key event on datalist
-  const keymap = {
-    33: -12, // Page Up
-    34: 12, // Page Down
-    38: -1, // Arrow Up
-    40: 1 // Arrow Down
-  };
 
-  function listKey(e) {
+// key event on input
+function listControl(evt) {
 
-    const t = target(e);
-    if (!t) return;
+  const input = target(evt);
+  if (!input || !input.datalist) {
+    return;
+  }
 
-    const
-      kc = e.keyCode,
-      dir = keymap[kc],
-      dl = t.parentElement;
+  switch (evt.keyCode) {
 
-    if (dir) {
-
-      // move through list
-      let opt = visibleSibling(t, dir);
+    case 40: {
+      // arrow down
+      let opt = input.datalist.firstElementChild;
+      if (!opt.offsetHeight) opt = visibleSibling(opt, 1);
       opt && opt.focus();
-      e.preventDefault();
-
+      break;
     }
-    else if (kc === 9 || kc === 13 || kc === 32) {
 
-      // tab, enter, space: use value
-      listSet(e);
+    case 9:   // tab
+      listHide(input.datalist);
+      break;
 
-    }
-    else if (kc === 8) {
-
-      // backspace: return to input
-      dl.input.focus();
-
-    }
-    else if (kc === 27) {
-
-      // esc: hide list
-      listHide(dl);
-
-    }
+    case 13:  // enter
+    case 32:  // space
+      listSet(evt);
+      break;
 
   }
 
+}
 
-  // get previous/next visible sibling
-  function visibleSibling(opt, dir) {
 
-    let newOpt = opt;
+// key event on datalist
+const keymap = {
+  33: -12, // Page Up
+  34: 12, // Page Down
+  38: -1, // Arrow Up
+  40: 1 // Arrow Down
+};
 
-    do {
+function listKey(evt) {
 
-      if (dir < 0) {
-        newOpt = newOpt.previousElementSibling;
-      }
-      else if (dir > 0) {
-        newOpt = newOpt.nextElementSibling;
-      }
-
-      if (newOpt && newOpt.offsetHeight) {
-        opt = newOpt;
-        dir -= Math.sign(dir);
-      }
-
-    } while (newOpt && dir);
-
-    return opt;
-
+  const targetElement = target(evt);
+  if (!targetElement) {
+    return;
   }
 
+  const kc = evt.keyCode;
+  const dir = keymap[kc];
+  const dl = targetElement.parentElement;
 
-  // set datalist option to input value
-  function listSet(e) {
+  if (dir) {
 
-    const
-      t = target(e),
-      dl = t && t.parentElement;
+    // move through list
+    let opt = visibleSibling(targetElement, dir);
+    opt && opt.focus();
+    evt.preventDefault();
 
-    if (!dl || !dl.input) return;
+  } else if (kc === 9 || kc === 13 || kc === 32) {
 
-    dl.input.value = (t && t.value) || '';
+    // tab, enter, space: use value
+    listSet(evt);
+
+  } else if (kc === 8) {
+
+    // backspace: return to input
+    dl.input.focus();
+
+  } else if (kc === 27) {
+
+    // esc: hide list
     listHide(dl);
   }
+}
 
 
-  // fetch target node
-  function target(t) {
-    return t && t.target;
+// get previous/next visible sibling
+function visibleSibling(opt, dir) {
+
+  let newOpt = opt;
+
+  do {
+
+    if (dir < 0) {
+      newOpt = newOpt.previousElementSibling;
+    } else if (dir > 0) {
+      newOpt = newOpt.nextElementSibling;
+    }
+
+    if (newOpt && newOpt.offsetHeight) {
+      opt = newOpt;
+      dir -= Math.sign(dir);
+    }
+
+  } while (newOpt && dir);
+
+  return opt;
+
+}
+
+
+// set datalist option to input value
+function listSet(evt) {
+
+  const t = target(evt);
+  const dataListElement = t && t.parentElement;
+
+  if (!dataListElement || !dataListElement.input) {
+    return;
   }
 
-  // hides the datalist on click outside
-  function closeOnClickOutside(evt) {
-    if (!listActive || listActive.contains(evt.target) || evt.target === listActive.input) return;
-    listHide(listActive);
-  }
+  dataListElement.input.value = (t && t.value) || '';
+  listHide(dataListElement);
+}
 
-  // hides the datalist on hit escape key
-  function closeOnEscape(evt) {
-    if (!listActive || !['Esc', 'Escape'].includes(evt.key)) return;
-    listHide(listActive);
-  }
 
-})();
+/**
+  * fetch target node
+  * @param t - Event Handler
+  */
+function target(t) {
+  return t && t.target;
+}
+
+/**
+ * hides the datalist on click outside
+ * @param evt - EventHandler
+ */
+function closeOnClickOutside(evt) {
+  if (!listActive || listActive.contains(evt.target) || evt.target === listActive.input) {
+    return;
+  }
+  listHide(listActive);
+}
+
+/**
+ * hides the datalist on hit escape key
+ * @param evt - EventHandler
+ */
+function closeOnEscape(evt) {
+  if (!listActive || !['Esc', 'Escape'].includes(evt.key)) {
+    return;
+  }
+  listHide(listActive);
+}
+
