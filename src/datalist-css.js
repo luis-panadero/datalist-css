@@ -79,8 +79,6 @@ function listShowEventHandler(evt) {
     dataListElement.shown = true;
     dataListElement.classList.add("datalist--visible");
     listLimit(evt);
-    //dataListElement.style.width = input.offsetWidth + 'px';
-    //dataListElement.style.left = input.offsetLeft + 'px';
     listActive = dataListElement;
 
   }
@@ -129,8 +127,11 @@ function listControl(evt) {
     case 40: {
       // arrow down
       let opt = input.datalist.firstElementChild;
-      if (!opt.offsetHeight) opt = visibleSibling(opt, 1);
+      if (!opt.offsetHeight) {
+        opt = visibleSibling(opt, 1);
+      }
       opt && opt.focus();
+      // evt.preventDefault();
       break;
     }
 
@@ -171,7 +172,13 @@ function listKey(evt) {
 
     // move through list
     let opt = visibleSibling(targetElement, dir);
-    opt && opt.focus();
+    if (opt) {
+      opt.focus();
+      let viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+      if (opt.getBoundingClientRect().top > viewportHeight || opt.getBoundingClientRect().top < 0 || isCovered(opt)) {
+        opt.scrollIntoView({behavior: "auto", block: "center",});
+      }
+    }
     evt.preventDefault();
 
   } else if (kc === 9 || kc === 13 || kc === 32) {
@@ -191,6 +198,28 @@ function listKey(evt) {
   }
 }
 
+// Check if an element is covered by another element
+function isCovered(element) {
+  const rect = element.getBoundingClientRect();
+
+  // Check several points inside the element
+  const points = [
+      [rect.left + 1, rect.top + 1],
+      [rect.right - 1, rect.top + 1],
+      [rect.left + 1, rect.bottom - 1],
+      [rect.right - 1, rect.bottom - 1],
+      [rect.left + rect.width / 2, rect.top + rect.height / 2]
+  ];
+
+  for (const [x, y] of points) {
+      const converingElement = document.elementFromPoint(x, y);
+      if (converingElement !== element && !element.contains(converingElement)) {
+          return true;  // another element is on top
+      }
+  }
+
+  return false; // visible (not covered)
+}
 
 // get previous/next visible sibling
 function visibleSibling(opt, dir) {
