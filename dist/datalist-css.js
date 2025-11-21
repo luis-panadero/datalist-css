@@ -20,7 +20,8 @@ function inyectDataListCss(rootElement = document) {
   const inputElements = getAllInputsWithDataLists(rootElement);
   for (const inputElement of inputElements) {
     inputElement.list.classList.add("datalist");
-    inputElement.addEventListener('focusin', listShowEventHandler);
+    inputElement.addEventListener('focusin', listShowFocusInEventHandler);
+    inputElement.addEventListener('input', listShowEventHandler);
   }
   if (inputElements.length > 0) {
     document.body.addEventListener('click', closeOnClickOutside);
@@ -44,8 +45,7 @@ function getAllInputsWithDataLists(rootElement ) {
 }
 
 // datalist control focused?
-function listShowEventHandler(evt) {
-
+function listShowFocusInEventHandler(evt) {
   const input = target(evt);
   if (!input) {
     return;
@@ -70,6 +70,17 @@ function listShowEventHandler(evt) {
   }
 
   // show datalist
+  listShowEventHandler(evt);
+}
+
+// Manages the input handler to show again the datalist
+function listShowEventHandler(evt) {
+  const input = target(evt);
+  if (!input) {
+    return;
+  }
+  
+  // show datalist
   const dataListElement = input.datalist;
   if (dataListElement && !dataListElement.shown) {
 
@@ -81,7 +92,6 @@ function listShowEventHandler(evt) {
     listActive = dataListElement;
 
   }
-
 }
 
 /**
@@ -99,13 +109,18 @@ function listHide(dataListElement) {
 // enable valid and disable invalid options
 function listLimit(evt) {
 
-  const input = target(evt);
-  if (!input || !input.datalist) {
+  const inputElement = target(evt);
+  updateDataListOptions(inputElement);
+}
+
+// update datalist options visibility and tabindex
+function updateDataListOptions(inputElement) {
+  if (!inputElement || !inputElement.datalist) {
     return;
   }
 
-  const value = input.value.trim().toLowerCase();
-  const optionElements = [...input.datalist.getElementsByTagName('option')];
+  const value = inputElement.value.trim().toLowerCase();
+  const optionElements = [...inputElement.datalist.getElementsByTagName('option')];
   for (const optionElement of optionElements) {
     optionElement.setAttribute('tabindex', 0);
     optionElement.style.display = (!value || optionElement.value.toLowerCase().includes(value)) ? 'block' : 'none';
@@ -117,7 +132,7 @@ function listLimit(evt) {
 function listControl(evt) {
 
   const input = target(evt);
-  if (!input || !input.datalist) {
+  if (!input || !input.datalist || false in input.dataset) {
     return;
   }
 
@@ -184,17 +199,15 @@ function listKey(evt) {
 
     // tab, enter, space: use value
     listSet(evt);
-
-  } else if (kc === 8) {
-
-    // backspace: return to input
-    dl.input.focus();
-
   } else if (kc === 27) {
 
     // esc: hide list
     listHide(dl);
-  }
+  } else /* if (kc === 8) */ {
+
+    // backspace or any other key: return to input
+    dl.input.focus();
+  } 
 }
 
 // Check if an element is covered by another element
@@ -221,26 +234,31 @@ function isCovered(element) {
 }
 
 // get previous/next visible sibling
-function visibleSibling(opt, dir) {
-
-  let newOpt = opt;
+function visibleSibling(optionElement, dir) {
+  let newOpt = optionElement;
 
   do {
-
     if (dir < 0) {
       newOpt = newOpt.previousElementSibling;
+      if (!newOpt) {
+        
+        // Es el primero y estamos intentando subir arriba, volvemos el foco al input
+        const datalist = optionElement.parentElement;
+        datalist.input.focus();
+        return;
+      }
     } else if (dir > 0) {
       newOpt = newOpt.nextElementSibling;
     }
 
     if (newOpt && newOpt.offsetHeight) {
-      opt = newOpt;
+      optionElement = newOpt;
       dir -= Math.sign(dir);
     }
 
   } while (newOpt && dir);
 
-  return opt;
+  return optionElement;
 
 }
 
@@ -290,5 +308,5 @@ function closeOnEscape(evt) {
   listHide(listActive);
 }
 
-export { inyectDataListCss };
+export { inyectDataListCss, updateDataListOptions };
 //# sourceMappingURL=datalist-css.js.map
