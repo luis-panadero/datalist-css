@@ -123,8 +123,23 @@ function updateDataListOptions(inputElement) {
   const optionElements = [...inputElement.datalist.getElementsByTagName('option')];
   for (const optionElement of optionElements) {
     optionElement.setAttribute('tabindex', 0);
-    optionElement.style.display = (!value || optionElement.value.toLowerCase().includes(value)) ? 'block' : 'none';
+    if (!value) {
+      optionElement.style.display = 'none';
+    } else {
+      const elementValue = normalizeToUpperNoAccents(optionElement.value);
+      optionElement.style.display = elementValue.includes(normalizeToUpperNoAccents(value)) ? 'block' : 'none';
+    }
   }
+}
+
+function normalizeToUpperNoAccents(str) {
+  if (typeof str !== 'string') {
+    return str;
+  }
+  return str
+    .normalize('NFD')                     // Descompose characters from diacritics
+    .replace(/[\u0300-\u036f]/g, '')      // Remove diacritics
+    .toUpperCase();
 }
 
 
