@@ -147,7 +147,7 @@ function normalizeToUpperNoAccents(str) {
 function listControl(evt) {
 
   const input = target(evt);
-  if (!input || !input.datalist || false in input.dataset) {
+  if (!input || !input.datalist || 'datalistNative' in input.dataset) {
     return;
   }
 
