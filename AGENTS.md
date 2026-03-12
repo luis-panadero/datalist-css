@@ -32,9 +32,23 @@ Starts a development server with live reload using `@web/dev-server`.
 
 ### Testing
 
-**No test framework is currently configured.** The project relies on manual testing via `demo.html`.
+#### E2E Tests (Playwright)
 
-To add tests in the future, consider adding Vitest or Jest.
+First, start the development server:
+```bash
+npx web-dev-server --node-resolve --port 8000
+```
+
+Then run the tests:
+```bash
+npm run test:e2e       # Run E2E tests
+npm run test:e2e:ui   # Run E2E tests with UI
+```
+
+**Run a single E2E test:**
+```bash
+npx playwright test tests/e2e/datalist.spec.js -g "should show datalist"
+```
 
 ### Linting
 
@@ -63,6 +77,10 @@ dist/
   datalist-css.min.js # Minified output
 demo.html            # Manual testing page
 rollup.config.js     # Build configuration
+tests/
+  e2e/               # Playwright E2E tests
+    datalist.spec.js
+playwright.config.js # Playwright configuration
 ```
 
 ### Naming Conventions
@@ -149,11 +167,11 @@ import terser from "@rollup/plugin-terser";
 ## Notes for AI Agents
 
 - This is a **simple, single-file library** - avoid over-engineering
-- No TypeScript, no tests, no linting - keep changes minimal and focused
+- Keep changes minimal and focused
 - The main logic transforms `<datalist>` elements to behave like custom `<div>` dropdowns
 - Focus on browser compatibility and keeping bundle size small
 - If adding dependencies, consider the impact on the 1.5Kb minified size
-- When doing a git commit ,always put a line indicating that was done with
+- When doing a git commit, always put a line indicating that was done with
   OpenCode (or Cursor, etc...) and what model was used.
 - Never do a git push if the user don't ask it.
 
